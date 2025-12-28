@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>可调整大小带橡皮擦的电子白板</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #333;
+        }
+        
+        .instructions {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            max-width: 600px;
+        }
+        
+        .instructions p {
+            margin: 10px 0;
+            color: #555;
+        }
+        
+        .status {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        
+        .status.active {
+            background-color: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+        
+        .status.inactive {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+        
+        canvas {
+            border: 2px solid #333;
+            background-color: white;
+            cursor: crosshair;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 8px 16px;
+            font-size: 14px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        button.active {
+            background-color: #28a745;
+        }
+        
+        .color-picker {
+            margin: 10px;
+        }
+        
+        .brush-size {
+            margin: 10px;
+        }
+        
+        .canvas-size {
+            margin: 10px;
+        }
+        
+        .eraser-size {
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>电子白板</h1>
+        <div class="instructions">
+            <p><strong>使用说明：</strong></p>
+            <p>• 按 <strong>F</strong> 键开启/关闭连续涂绘模式</p>
+            <p>• 连续模式：单击左键开始涂绘，再次单击停止</p>
+            <p>• 非连续模式：按住鼠标左键绘图</p>
+            <p>• 按 <strong>E</strong> 键切换橡皮擦/画笔</p>
+            <p>• 按 <strong>C</strong> 键清空画布</p>
+            <p>• 使用下方工具栏可更改画笔颜色、粗细、画板大小和橡皮擦</p>
+        </div>
+        
+        <div class="status inactive" id="status">连续涂绘模式：关闭 (按F键开启)</div>
+        
+        <canvas id="whiteboard" width="800" height="500"></canvas>
+        
+        <div class="controls">
+            <div class="color-picker">
+                <label for="color">画笔颜色: </label>
+                <input type="color" id="color" value="#000000">
+            </div>
+            <div class="brush-size">
+                <label for="size">画笔粗细: </label>
+                <input type="range" id="size" min="1" max="30" value="5">
+                <span id="size-value">5</span>px
+            </div>
+            <div class="eraser-size">
+                <label for="eraserSize">橡皮擦粗细: </label>
+                <input type="range" id="eraserSize" min="1" max="50" value="20">
+                <span id="eraserSize-value">20</span>px
+            </div>
+            <div class="canvas-size">
+                <label for="width">画板宽度: </label>
+                <input type="number" id="width" min="400" max="1600" value="800">
+                <label for="height">高度: </label>
+                <input type="number" id="height" min="300" max="1000" value="500">
+                <button id="resize">调整</button>
+            </div>
+            <button id="eraser" class="inactive">橡皮擦</button>
+            <button id="clear">清空画布</button>
+            <button id="toggleBtn">切换模式 (F)</button>
+        </div>
+    </div>
+
+    <script>
+        // 获取画布和上下文
+        const canvas = document.getElementById('whiteboard');
+        const ctx = canvas.getContext('2d');
+        const statusDiv = document.getElementById('status');
+        const colorPicker = document.getElementById('color');
+        const sizeSlider = document.getElementById('size');
+        const sizeValue = document.getElementById('size-value');
+        const eraserSizeSlider = document.getElementById('eraserSize');
+        const eraserSizeValue = document.getElementById('eraserSize-value');
+        const widthInput = document.getElementById('width');
+        const heightInput = document.getElementById('height');
+        const resizeBtn = document.getElementById('resize');
+        const eraserBtn = document.getElementById('eraser');
+        const clearBtn = document.getElementById('clear');
+        const toggleBtn = document.getElementById('toggleBtn');
+        
+        // 绘图状态
+        let isDrawing = false;
+        let drawingMode = false; // 连续涂绘模式状态
+        let eraserMode = false; // 橡皮擦模式
+        let lastX = 0;
+        let lastY = 0;
+        let currentBrushSize = 5; // 当前画笔大小
+        let currentEraserSize = 20; // 当前橡皮擦大小
+        
+        // 保存当前画布内容的函数
+        function saveCanvas() {
+            // 创建一个临时画布来保存当前内容
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(canvas, 0, 0);
+            return tempCanvas;
+        }
+        
+        // 设置初始画布样式
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = colorPicker.value;
+        ctx.lineWidth = currentBrushSize;
+        
+        // 更新画笔大小显示
+        sizeSlider.addEventListener('input', () => {
+            currentBrushSize = parseInt(sizeSlider.value);
+            sizeValue.textContent = currentBrushSize;
+            if (!eraserMode) {
+                ctx.lineWidth = currentBrushSize;
+            }
+        });
+        
+        // 更新橡皮擦大小显示
+        eraserSizeSlider.addEventListener('input', () => {
+            currentEraserSize = parseInt(eraserSizeSlider.value);
+            eraserSizeValue.textContent = currentEraserSize;
+            if (eraserMode) {
+                ctx.lineWidth = currentEraserSize;
+            }
+        });
+        
+        // 颜色选择器事件
+        colorPicker.addEventListener('input', () => {
+            if (!eraserMode) {
+                ctx.strokeStyle = colorPicker.value;
+            }
+        });
+        
+        // 鼠标按下事件
+        canvas.addEventListener('mousedown', (e) => {
+            if (drawingMode) {
+                // 连续模式下，单击开始/停止绘图
+                if (isDrawing) {
+                    // 如果正在绘制，则停止
+                    isDrawing = false;
+                } else {
+                    // 如果未在绘制，则开始
+                    isDrawing = true;
+                    [lastX, lastY] = [e.offsetX, e.offsetY];
+                }
+            } else {
+                // 非连续模式下，需要按住鼠标才能绘图
+                isDrawing = true;
+                [lastX, lastY] = [e.offsetX, e.offsetY];
+            }
+        });
+        
+        // 鼠标移动事件
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return; // 只有在绘制状态下才绘图
+            
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(e.offsetX, e.offsetY);
+            
+            if (eraserMode) {
+                // 橡皮擦模式：设置背景色为白色
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.lineWidth = currentEraserSize;
+            } else {
+                // 正常绘图模式
+                ctx.strokeStyle = colorPicker.value;
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.lineWidth = currentBrushSize;
+            }
+            
+            ctx.stroke();
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+        });
+        
+        // 鼠标释放事件
+        canvas.addEventListener('mouseup', () => {
+            if (!drawingMode) {
+                // 在非连续涂绘模式下，鼠标释放结束绘制
+                isDrawing = false;
+            }
+            // 在连续涂绘模式下，鼠标释放不影响绘制状态（通过单击切换）
+        });
+        
+        // 鼠标离开画布事件
+        canvas.addEventListener('mouseleave', () => {
+            // 鼠标离开画布时停止绘制
+            isDrawing = false;
+        });
+        
+        // 键盘事件监听 - 全局监听
+        document.addEventListener('keydown', (e) => {
+            // 使用F键切换连续涂绘模式
+            if (e.key.toLowerCase() === 'f') {
+                toggleDrawingMode();
+            }
+            // 使用E键切换橡皮擦模式
+            if (e.key.toLowerCase() === 'e') {
+                toggleEraserMode();
+            }
+            // 使用C键清空画布
+            if (e.key.toLowerCase() === 'c') {
+                clearCanvas();
+            }
+            // 使用Enter键调整画板大小
+            if (e.key === 'Enter' && document.activeElement !== sizeSlider && 
+                document.activeElement !== eraserSizeSlider && 
+                document.activeElement !== colorPicker) {
+                e.preventDefault(); // 防止表单提交
+                handleResize();
+            }
+        });
+        
+        // 切换连续涂绘模式
+        function toggleDrawingMode() {
+            // 切换模式时自动停止当前绘制
+            isDrawing = false;
+            drawingMode = !drawingMode;
+            updateStatus();
+        }
+        
+        // 切换橡皮擦模式
+        function toggleEraserMode() {
+            // 切换模式时自动停止当前绘制
+            isDrawing = false;
+            eraserMode = !eraserMode;
+            if (eraserMode) {
+                ctx.lineWidth = currentEraserSize;
+                eraserBtn.textContent = '画笔';
+                eraserBtn.className = 'active';
+            } else {
+                ctx.lineWidth = currentBrushSize;
+                eraserBtn.textContent = '橡皮擦';
+                eraserBtn.className = 'inactive';
+            }
+        }
+        
+        // 更新连续模式状态显示
+        function updateStatus() {
+            if (drawingMode) {
+                statusDiv.textContent = '连续涂绘模式：开启 (按F键关闭)';
+                statusDiv.className = 'status active';
+            } else {
+                statusDiv.textContent = '连续涂绘模式：关闭 (按F键开启)';
+                statusDiv.className = 'status inactive';
+            }
+        }
+        
+        // 调整画板大小
+        function handleResize() {
+            const newWidth = parseInt(widthInput.value);
+            const newHeight = parseInt(heightInput.value);
+            
+            // 验证输入值
+            if (newWidth >= 400 && newWidth <= 1600 && newHeight >= 300 && newHeight <= 1000) {
+                // 保存当前画布内容
+                const savedCanvas = saveCanvas();
+                
+                // 设置新尺寸
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+                
+                // 恢复画布内容
+                ctx.drawImage(savedCanvas, 0, 0);
+                
+                // 更新样式
+                ctx.lineJoin = 'round';
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = colorPicker.value;
+                ctx.lineWidth = eraserMode ? currentEraserSize : currentBrushSize;
+            } else {
+                alert('画板尺寸超出范围！宽度: 400-1600, 高度: 300-1000');
+            }
+        }
+        
+        // 清空画布
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        // 调整画板大小按钮点击事件
+        resizeBtn.addEventListener('click', handleResize);
+        
+        // 橡皮擦按钮点击事件
+        eraserBtn.addEventListener('click', toggleEraserMode);
+        
+        // 清空画布按钮点击事件
+        clearBtn.addEventListener('click', clearCanvas);
+        
+        // 按钮点击切换模式
+        toggleBtn.addEventListener('click', toggleDrawingMode);
+        
+        // 初始化状态显示
+        updateStatus();
+    </script>
+</body>
+</html>
+
+
+
