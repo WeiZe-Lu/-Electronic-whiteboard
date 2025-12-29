@@ -84,12 +84,12 @@
 
 ### 1. 调整画板尺寸限制
 
-**修改位置**：JavaScript中的`handleResize`函数（第156-176行）
+**修改位置**：JavaScript中的`handleResize`函数
 
 
 
 ```javascript
-// 找到以下代码（大约在第159-165行）
+// 找到以下代码
 if (newWidth >= 400 && newWidth <= 1600 && newHeight >= 300 && newHeight <= 1000)
 ```
 
@@ -100,7 +100,7 @@ if (newWidth >= 400 && newWidth <= 1600 && newHeight >= 300 && newHeight <= 1000
 - 将`400`改为所需的最小宽度（如300）
 - 将`300`改为所需的最小高度（如200）
 
-**同时修改HTML输入框限制**（第55-57行）：
+**同时修改HTML输入框限制**：
 
 
 
@@ -116,7 +116,7 @@ if (newWidth >= 400 && newWidth <= 1600 && newHeight >= 300 && newHeight <= 1000
 
 ### 2. 调整画笔粗细范围
 
-**修改位置**：HTML中的画笔粗细滑块（第50-51行）
+**修改位置**：HTML中的画笔粗细滑块
 
 
 
@@ -132,7 +132,7 @@ if (newWidth >= 400 && newWidth <= 1600 && newHeight >= 300 && newHeight <= 1000
 - 修改`min`属性为所需的最小值（如1）
 - 修改`value`为默认值（如10）
 
-**JavaScript中同步修改**（如果需要验证）： 在第70-74行的sizeSlider事件监听器中，可以添加验证逻辑：
+**JavaScript中同步修改**（如果需要验证）： 在sizeSlider事件监听器中，可以添加验证逻辑：
 
 
 ```javascript
@@ -142,7 +142,7 @@ const newSize = Math.max(1, Math.min(50, parseInt(sizeSlider.value)));
 
 ### 3. 调整橡皮擦粗细范围
 
-**修改位置**：HTML中的橡皮擦粗细滑块（第46-47行）
+**修改位置**：HTML中的橡皮擦粗细滑块
 
 
 ```javascript
@@ -159,7 +159,7 @@ const newSize = Math.max(1, Math.min(50, parseInt(sizeSlider.value)));
 
 ### 4. 添加新的快捷键
 
-**修改位置**：JavaScript中的键盘事件监听器（第122-141行）
+**修改位置**：JavaScript中的键盘事件监听器
 
 
 
@@ -205,7 +205,7 @@ if (e.key.toLowerCase() === 'z') {
 
 ### 5. 修改默认颜色
 
-**修改位置**：HTML中的颜色选择器（第43行）
+**修改位置**：HTML中的颜色选择器
 
 
 ```javascript
@@ -226,7 +226,7 @@ if (e.key.toLowerCase() === 'z') {
 
 ### 6. 修改默认画板尺寸
 
-**修改位置**：HTML中的尺寸输入框（第55-57行）
+**修改位置**：HTML中的尺寸输入框
 
 
 
@@ -240,7 +240,7 @@ if (e.key.toLowerCase() === 'z') {
 <input type="number" id="height" min="300" max="1000" value="700">
 ```
 
-**同时修改Canvas标签**（第40行）：
+**同时修改Canvas标签**：
 
 
 
@@ -251,7 +251,7 @@ if (e.key.toLowerCase() === 'z') {
 
 ### 7. 添加新的绘图工具（如圆形工具）
 
-**步骤1：在HTML工具栏中添加新按钮**（第58-61行附近）
+**步骤1：在HTML工具栏中添加新按钮**
 
 
 
@@ -284,7 +284,7 @@ circleToolBtn.addEventListener('click', () => {
 // 需要添加鼠标按下、移动、释放事件处理
 ```
 
-**步骤3：在键盘事件中添加快捷键**（第122-141行）
+**步骤3：在键盘事件中添加快捷键**
 
 
 ```javascript
@@ -297,22 +297,22 @@ if (e.key.toLowerCase() === 'o') { // O键用于圆形工具
 
 ### 8. 修改界面样式
 
-**修改位置**：CSS样式部分（第6-122行）
+**修改位置**：CSS样式部分
 
 **修改颜色方案**：
 
-- 找到`.status.active`类（第35-40行），修改背景色和文字色
-- 找到`.status.inactive`类（第41-46行），修改背景色和文字色
-- 找到按钮样式（第67-76行），修改背景色
+- 找到`.status.active`类），修改背景色和文字色
+- 找到`.status.inactive`类，修改背景色和文字色
+- 找到按钮样式，修改背景色
 
 **调整布局**：
 
-- 修改`.controls`类（第57-62行），调整按钮排列
-- 修改`.container`类（第12-17行），调整整体布局
+- 修改`.controls`类，调整按钮排列
+- 修改`.container`类，调整整体布局
 
 **更改画布样式**：
 
-- 修改`canvas`选择器（第52-56行），调整边框、阴影等
+- 修改`canvas`选择器，调整边框、阴影等
 
 ### 9. 添加撤销功能
 
@@ -321,7 +321,7 @@ if (e.key.toLowerCase() === 'o') { // O键用于圆形工具
 
 
 ```javascript
-// 在变量声明部分添加（第26-36行附近）
+// 在变量声明部分添加
 let drawingHistory = []; // 存储绘制历史
 let historyIndex = -1;   // 当前历史位置
 
@@ -431,9 +431,8 @@ document.getElementById('loadImage').addEventListener('change', function(e) {
 });
 ```
 
-### 11. 修改初始状态
 
-**修改默认模式**（第33-35行）：
+**修改默认模式**：
 
 
 
@@ -445,7 +444,7 @@ let drawingMode = false; // 连续涂绘模式状态
 let drawingMode = true; // 连续涂绘模式状态
 ```
 
-**修改默认橡皮擦状态**（第34行）：
+**修改默认橡皮擦状态**：
 
 
 
